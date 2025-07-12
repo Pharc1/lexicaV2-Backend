@@ -1,0 +1,8 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+openai==1.95.0
+chromadb==1.0.15
+PyPDF2==3.0.1
+python-dotenv==1.0.0
+gunicorn==21.2.0
+langchain==0.3.26
