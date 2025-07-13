@@ -10,7 +10,7 @@ def ensure_directories_exist():
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
 
-def save_discussion(question: str, context_used: List[str] = None):
+def save_discussion(question: str,response:str, context_used: List[str] = None):
     """
     Sauvegarde une discussion dans un fichier JSON.
     
@@ -25,6 +25,7 @@ def save_discussion(question: str, context_used: List[str] = None):
     discussion_data = {
         "timestamp": timestamp.isoformat(),
         "question": question,
+        "response": response,
         "context_used": context_used or [],
         "date": timestamp.strftime("%Y-%m-%d"),
         "time": timestamp.strftime("%H:%M:%S")
