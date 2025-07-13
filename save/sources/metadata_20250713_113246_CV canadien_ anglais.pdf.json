@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-07-13T11:32:46.616676",
+  "original_filename": "CV canadien_ anglais.pdf",
+  "saved_filename": "20250713_113246_CV canadien_ anglais.pdf",
+  "file_path": "save/sources/20250713_113246_CV canadien_ anglais.pdf",
+  "chunks_processed": 3,
+  "processing_date": "2025-07-13",
+  "processing_time": "11:32:46",
+  "processing_method": "LangChain chunking",
+  "chunk_size": 1024,
+  "chunk_overlap": 100,
+  "documents_content": [
+    {
+      "chunk_index": 0,
+      "content_length": 955,
+      "content_preview": "Pharci Kassim\nAI Engineer\nEmail KassimPharci@hotmail.fr Phone 0767697796\nLinkedIn https://linkedin.com/in/Pharci GitHub https://github.com/Pharc1\nSoftware\nWork History\nEducation\nProjectsEngineering st...",
+      "metadata": {
+        "filename": "CV canadien_ anglais.pdf",
+        "start_index": 0
+      }
+    },
+    {
+      "chunk_index": 1,
+      "content_length": 957,
+      "content_preview": "reducing processing time by 30%.\nComplete implementation of Power BI: SQL  Server connection, data cleaning, creation of measures in DAX,\ndevelopment of multiple dashboards.\n12/2023   - 02/2024 Python...",
+      "metadata": {
+        "filename": "CV canadien_ anglais.pdf",
+        "start_index": 923
+      }
+    },
+    {
+      "chunk_index": 2,
+      "content_length": 796,
+      "content_preview": "Optimization of the Ef ficientNet model (fine-tuning) on a custom dataset\nDevelopment of a web interface using Flask\nCertificates\nSkills\nReferences\nLanguages\nHobby/Interest02/2024   - 02/2024 Analysis...",
+      "metadata": {
+        "filename": "CV canadien_ anglais.pdf",
+        "start_index": 1881
+      }
+    }
+  ]
+}

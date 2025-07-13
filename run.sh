@@ -26,8 +26,6 @@ if [ ! -f ".env" ]; then
 fi
 
 # Lancer l'application
-echo "📝 Initialisation des données..."
-python init.py
 
 # Lancer l'application
 echo "🎯 Lancement du serveur Flask..."

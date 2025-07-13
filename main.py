@@ -89,77 +89,84 @@ def ask():
                 filtered_metas.append(meta)
 
         # 💬 Préparation du contexte uniquement si au moins un document pertinent
-        if filtered_docs:
-            context = "\n\n----\n\n".join(filtered_docs)
-            filenames = list({meta.get('filename') for meta in filtered_metas if meta.get('filename')})
-            logger.info("Contexte trouvé: %s", context[:200] + "...")
-            context_with_instructions = base_instructions + " Connaissances : " + context
-        else:
-            context = ""
-            filenames = []
-            logger.info("Aucun contexte assez pertinent trouvé, Lexica répondra sans.")
-            context_with_instructions = base_instructions  # pas de contexte injecté
+        # Préparer les messages
+	messages = []
 
-        # Préparer les messages pour OpenAI
-        messages = [
-            {"role": "system", "content": context_with_instructions},
-            {"role": "user", "content": question},
-        ]
+	# 🔹 Ajouter le contexte au prompt system
+	if filtered_docs:
+    		context = "\n\n----\n\n".join(filtered_docs)
+    		filenames = list({meta.get('filename') for meta in filtered_metas if meta.get('filename')})
+    		logger.info("Contexte trouvé: %s", context[:200] + "...")
+    		context_with_instructions = base_instructions + "\n\nConnaissances :\n" + context
+	else:
+    		context = ""
+    		filenames = []
+    		logger.info("Aucun contexte assez pertinent trouvé, Lexica répondra sans.")
+    		context_with_instructions = base_instructions
 
-        # Si discussion déjà en cours
-        if data.get("messages"):
-            messages = data.get("messages")
-            messages.append({"role": "user", "content": question})
-            print("Discussion en cours :", messages)
-            append_message_to_discussion(discussion_path,{"type": "user", "content": question})
-        else:
-            # Sauvegarder la discussion des que la question est posé
-            save_discussion(question)
+	# 🔹 Ajout du message syst
+	messages.append({"role": "system", "content": context_with_instructions})
 
+	# 🔹 Gestion de l’historique
+	if "messages" in data and isinstance(data["messages"], list):
+    		previous_messages = data["messages"]
+    
+    	# ⚠️ On garde uniquement les rôles user/assistant
+    		for msg in previous_messages:
+        		if msg["role"] in ("user", "assistant"):
+            			messages.append(msg)
 
-        # Variable pour collecter la réponse complète
-        full_response = ""
-        context_used = results['documents'][0] if results['documents'] else []
+	# 🔹 Ajouter la nouvelle question
+	messages.append({"role": "user", "content": question})
 
-        def generate():
-            """Génère les réponses de l'API OpenAI en streaming."""
-            nonlocal full_response
-            try:
-                 
-                
-                
-                stream = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=messages,
-                    stream=True,
-                )
+	# 🔹 Sauvegarder la question
+	append_message_to_discussion(discussion_path, {"type": "user", "content": question})
 
-                for chunk in stream:
-                    if chunk.choices[0].delta.content is not None:
-                        content = chunk.choices[0].delta.content
-                        full_response += content
-                        yield content
+	# 🔹 Pour stocker la réponse de l’assistant
+	full_response = ""
 
-                
+	# 🔹 Streaming
+	def generate():
+   		nonlocal full_response
+    		try:
+       			stream = client.chat.completions.create(
+            			model="gpt-4o-mini",
+            			messages=messages,
+            			stream=True,
+        			)
 
-            except Exception as e:
-                logger.error("Erreur lors de l'appel du modèle : %s", str(e))
-                error_message = "Une erreur est survenue lors du traitement de la question."
-                full_response = error_message
-                save_discussion(question, error_message, context_used)
-                yield error_message
-        filename_header = "||".join(filenames)
-        # Envoi de la réponse en streaming
-        return Response(
-            generate(), 
-            content_type="text/plain", 
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Access-Control-Allow-Origin": "*",
-                "X-Used-Filenames": filename_header
-            }
-        )
+        	for chunk in stream:
+            		if chunk.choices[0].delta.content:
+                	content = chunk.choices[0].delta.content
+                	full_response += content
+                	yield content
 
+    		except Exception as e:
+        		logger.error("Erreur modèle : %s", str(e))
+        		error_message = "Une erreur est survenue lors du traitement."
+        		full_response = error_message
+        		save_discussion(question, error_message, context)
+        		yield error_message
+
+	filename_header = "||".join(filenames)
+
+	# 🔹 On sauvegarde la réponse une fois générée
+	def stream_with_save():
+    		for chunk in generate():
+        		yield chunk
+    		append_message_to_discussion(discussion_path, {"type": "assistant", "content": full_response})
+    		save_discussion(question, full_response, context)
+
+	return Response(
+    		stream_with_save(),
+    		content_type="text/plain",
+    		headers={
+        		"Cache-Control": "no-cache, no-store, must-revalidate",
+        		"Access-Control-Allow-Origin": "*",  # ou un domaine spécifique si déjà filtré par Nginx
+        		"X-Used-Filenames": filename_header
+    		}
+	)
+ 
     except Exception as e:
         logger.error("Erreur lors de la recherche de similarité : %s", str(e))
         return jsonify({"error": "Erreur lors de la recherche de similarité."}), 500
