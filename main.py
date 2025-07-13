@@ -90,82 +90,82 @@ def ask():
 
         # 💬 Préparation du contexte uniquement si au moins un document pertinent
         # Préparer les messages
-	messages = []
+        messages = []
 
-	# 🔹 Ajouter le contexte au prompt system
-	if filtered_docs:
-    		context = "\n\n----\n\n".join(filtered_docs)
-    		filenames = list({meta.get('filename') for meta in filtered_metas if meta.get('filename')})
-    		logger.info("Contexte trouvé: %s", context[:200] + "...")
-    		context_with_instructions = base_instructions + "\n\nConnaissances :\n" + context
-	else:
-    		context = ""
-    		filenames = []
-    		logger.info("Aucun contexte assez pertinent trouvé, Lexica répondra sans.")
-    		context_with_instructions = base_instructions
+        # 🔹 Ajouter le contexte au prompt system
+        if filtered_docs:
+                context = "\n\n----\n\n".join(filtered_docs)
+                filenames = list({meta.get('filename') for meta in filtered_metas if meta.get('filename')})
+                logger.info("Contexte trouvé: %s", context[:200] + "...")
+                context_with_instructions = base_instructions + "\n\nConnaissances :\n" + context
+        else:
+                context = ""
+                filenames = []
+                logger.info("Aucun contexte assez pertinent trouvé, Lexica répondra sans.")
+                context_with_instructions = base_instructions
 
-	# 🔹 Ajout du message syst
-	messages.append({"role": "system", "content": context_with_instructions})
+        # 🔹 Ajout du message syst
+        messages.append({"role": "system", "content": context_with_instructions})
 
-	# 🔹 Gestion de l’historique
-	if "messages" in data and isinstance(data["messages"], list):
-    		previous_messages = data["messages"]
-    
-    	# ⚠️ On garde uniquement les rôles user/assistant
-    		for msg in previous_messages:
-        		if msg["role"] in ("user", "assistant"):
-            			messages.append(msg)
+        # 🔹 Gestion de l’historique
+        if "messages" in data and isinstance(data["messages"], list):
+                previous_messages = data["messages"]
+        
+            # ⚠️ On garde uniquement les rôles user/assistant
+                for msg in previous_messages:
+                    if msg["role"] in ("user", "assistant"):
+                            messages.append(msg)
 
-	# 🔹 Ajouter la nouvelle question
-	messages.append({"role": "user", "content": question})
+        # 🔹 Ajouter la nouvelle question
+        messages.append({"role": "user", "content": question})
 
-	# 🔹 Sauvegarder la question
-	append_message_to_discussion(discussion_path, {"type": "user", "content": question})
+        # 🔹 Sauvegarder la question
+        append_message_to_discussion(discussion_path, {"type": "user", "content": question})
 
-	# 🔹 Pour stocker la réponse de l’assistant
-	full_response = ""
+        # 🔹 Pour stocker la réponse de l’assistant
+        full_response = ""
 
-	# 🔹 Streaming
-	def generate():
-   		nonlocal full_response
-    		try:
-       			stream = client.chat.completions.create(
-            			model="gpt-4o-mini",
-            			messages=messages,
-            			stream=True,
-        			)
+        # 🔹 Streaming
+        def generate():
+            nonlocal full_response
+            try:
+                stream = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    stream=True,
+                )
 
-        	for chunk in stream:
-            		if chunk.choices[0].delta.content:
-                	content = chunk.choices[0].delta.content
-                	full_response += content
-                	yield content
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        full_response += content
+                        yield content
 
-    		except Exception as e:
-        		logger.error("Erreur modèle : %s", str(e))
-        		error_message = "Une erreur est survenue lors du traitement."
-        		full_response = error_message
-        		save_discussion(question, error_message, context)
-        		yield error_message
+            except Exception as e:
+                logger.error("Erreur modèle : %s", str(e))
+                error_message = "Une erreur est survenue lors du traitement."
+                full_response = error_message
+                save_discussion(question, error_message, context)
+                yield error_message
 
-	filename_header = "||".join(filenames)
+        filename_header = "||".join(filenames)
 
-	# 🔹 On sauvegarde la réponse une fois générée
-	def stream_with_save():
-    		for chunk in generate():
-        		yield chunk
-    		append_message_to_discussion(discussion_path, {"type": "assistant", "content": full_response})
-    		save_discussion(question, full_response, context)
+        # 🔹 On sauvegarde la réponse une fois générée
+        def stream_with_save():
+                for chunk in generate():
+                    yield chunk
+                append_message_to_discussion(discussion_path, {"type": "assistant", "content": full_response})
+                save_discussion(question, full_response, context)
 
-	return Response(
-    		stream_with_save(),
-    		content_type="text/plain",
-    		headers={
-        		"Cache-Control": "no-cache, no-store, must-revalidate",
-        		"Access-Control-Allow-Origin": "*",  # ou un domaine spécifique si déjà filtré par Nginx
-        		"X-Used-Filenames": filename_header
-    		}
-	)
+        return Response(
+                stream_with_save(),
+                content_type="text/plain",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Access-Control-Allow-Origin": "*",  # ou un domaine spécifique si déjà filtré par Nginx
+                    "X-Used-Filenames": filename_header
+                }
+        )
  
     except Exception as e:
         logger.error("Erreur lors de la recherche de similarité : %s", str(e))
