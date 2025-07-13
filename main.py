@@ -162,7 +162,10 @@ def ask():
                 content_type="text/plain",
                 headers={
                     "Cache-Control": "no-cache, no-store, must-revalidate",
-                    "Access-Control-Allow-Origin": "*",  # ou un domaine spécifique si déjà filtré par Nginx
+                    "Access-Control-Allow-Origin": "https://lexica.pharci.fr",  # PAS "*"
+                    "Access-Control-Allow-Headers": "X-Used-Filenames, Content-Type",
+                    "Access-Control-Expose-Headers": "X-Used-Filenames",  # 💥 pour que le frontend puisse lire ce header
+                    "Access-Control-Allow-Credentials": "true",
                     "X-Used-Filenames": filename_header
                 }
         )
